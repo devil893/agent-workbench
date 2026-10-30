@@ -1,0 +1,2 @@
+# Upstream source pinned for the pilot; do not replace with floating main.
+safelabs-eval @ git+https://github.com/AgentSafeLabs/safelabs-eval.git@1fb34b83b154170551be677df3b350289edf6dcd
