@@ -65,9 +65,15 @@ class Agent:
             return json.dumps(self.executor.invoke(tenant,run_id,'notes_save',{'title':'Quick note','text':message[9:]}))
         if message.lower().strip() in {'list notes','show notes'}:
             return json.dumps(self.executor.invoke(tenant,run_id,'notes_list',{}))
-        return ('Demo backend (no LLM). Try "remember buy coffee", "list notes", or '
-                '/tool calendar_create {"title":"Demo meeting","start":"2030-01-01T10:00:00+00:00","end":"2030-01-01T11:00:00+00:00"}. '
-                'Use the authenticated approval endpoint to confirm a proposed action. Configure the anthropic backend for natural-language delegation.')
+        if message.lower().startswith('add task '):
+            result=self.executor.invoke(tenant,run_id,'todo_create',{'title':message[9:].strip()})
+            return 'Task saved.' if result['status']=='executed' else json.dumps(result)
+        if message.lower().strip() in {'list tasks','show tasks'}:
+            items=self.store.list(tenant,'todo')
+            return '\n'.join(('Done: ' if x['completed'] else 'To do: ')+x['title'] for x in items) or 'You have no tasks yet.'
+        return ('Local command mode is active. Try “remember buy coffee”, “list notes”, '
+                '“add task prepare a proposal”, or “list tasks”. You can also use the workspace forms '
+                'to manage documents and reminders. Configure the Anthropic backend for open-ended AI chat.')
 
     async def _manager(self,tenant,message,run_id):
         groups=sorted({t.specialist for t in self.catalog.tools.values()})

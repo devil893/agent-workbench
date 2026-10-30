@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "agent-workbench"
 version = "0.1.0"
-description = "A multi-tenant personal assistant and transparent tool-safety evaluation target"
+description = "A persistent personal assistant with web chat, notes, tasks, documents and reminders"
 requires-python = ">=3.11"
 dependencies = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1", "httpx>=0.27,<1", "python-multipart>=0.0.18,<1", "jsonschema>=4.23,<5"]
 
@@ -14,6 +14,9 @@ dev = ["pytest>=8,<10"]
 
 [tool.setuptools.packages.find]
 include = ["workbench*"]
+
+[tool.setuptools.package-data]
+workbench = ["static/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

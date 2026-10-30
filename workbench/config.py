@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 import json
 import os
+from pathlib import Path
 
 
 @dataclass(frozen=True)
@@ -17,7 +18,9 @@ class Settings:
 
     @classmethod
     def from_env(cls):
-        tokens = json.loads(os.getenv("WORKBENCH_TOKENS", "{}"))
+        config_path=Path(os.getenv('WORKBENCH_CONFIG','data/local-config.json'))
+        local=json.loads(config_path.read_text(encoding='utf-8')) if config_path.exists() else {}
+        tokens = json.loads(os.environ['WORKBENCH_TOKENS']) if 'WORKBENCH_TOKENS' in os.environ else local.get('tokens',{})
         phones = json.loads(os.getenv("TWILIO_ALLOWED_PHONES", "[]"))
         if not isinstance(tokens, dict) or any(not isinstance(k, str) or len(k) < 24 or not isinstance(v, str) or not v for k, v in tokens.items()):
             raise ValueError("WORKBENCH_TOKENS must map secrets of at least 24 characters to tenant IDs")

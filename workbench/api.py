@@ -6,10 +6,12 @@ import hashlib
 import hmac
 import json
 import uuid
+from pathlib import Path
 from xml.sax.saxutils import escape
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
-from fastapi.responses import Response
+from fastapi.responses import Response, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from .agent import Agent
 from .config import Settings
@@ -47,6 +49,12 @@ def create_app(settings=None, model=None):
 
     app=FastAPI(title='Agent Workbench',version='0.1.0',lifespan=lifespan)
     app.state.store,app.state.executor,app.state.agent=store,executor,agent
+    static=Path(__file__).parent/'static'
+    app.mount('/static',StaticFiles(directory=static),name='static')
+
+    @app.get('/',include_in_schema=False)
+    def home():
+        return FileResponse(static/'index.html')
 
     @app.middleware('http')
     async def limit_body(request,call_next):
@@ -73,6 +81,17 @@ def create_app(settings=None, model=None):
     @app.get('/tools')
     def manifest(tenant=Depends(identity)):
         return catalog.manifest()
+
+    @app.get('/history')
+    def history(tenant=Depends(identity)):
+        return store.history(tenant)
+
+    @app.post('/actions/{name}')
+    async def action(name:str,arguments:dict,tenant=Depends(identity)):
+        run_id=uuid.uuid4().hex
+        async with agent.locks.setdefault(tenant,asyncio.Lock()):
+            result=await asyncio.to_thread(executor.invoke,tenant,run_id,name,arguments)
+        return {'run_id':run_id,**result}
 
     @app.post('/chat')
     @app.post('/webhook/test')

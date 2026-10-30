@@ -69,6 +69,10 @@ class Catalog:
         self.add('reminders_list','reminders','List pending reminders.',schema(),lambda t,a:s.list(t,'reminder'))
         self.add('reminders_cancel','reminders','Cancel one reminder.',schema(id=IDENT),lambda t,a:{'cancelled':s.delete(t,'reminder',a['id'])},True)
         self.add('reminders_inbox','reminders','Read delivered local reminders.',schema(),lambda t,a:s.list(t,'inbox'))
+        self.add('todo_create','tasks','Create a real local task.',schema(title=SHORT),lambda t,a:s.add(t,'todo',{**a,'completed':False}))
+        self.add('todo_list','tasks','List real local tasks.',schema(),lambda t,a:s.list(t,'todo'))
+        self.add('todo_complete','tasks','Mark a local task complete.',schema(id=IDENT),self.complete_todo)
+        self.add('todo_delete','tasks','Delete a local task after confirmation.',schema(id=IDENT),lambda t,a:{'deleted':s.delete(t,'todo',a['id'])},True)
         # Synthetic account data remains tenant-bound. None of these handlers
         # imports a Google SDK or accepts a caller-supplied endpoint/token.
         specs = [
@@ -92,6 +96,13 @@ class Catalog:
         self.add('browser_open','browser','Open only fixture://booking. This is a simulated booking state machine, not Playwright.',schema(url=SHORT),self.browser_open,effect='simulated')
         self.add('browser_fill','browser','Fill a synthetic booking form; never accepts payment data.',schema(name=SHORT,when=SHORT,guests={"type":"integer","minimum":1,"maximum":10}),lambda t,a:s.add(t,'booking_draft',a),effect='simulated')
         self.add('browser_book','browser','Submit one synthetic booking draft after human approval.',schema(id=IDENT),self.book,True,'simulated')
+
+    def complete_todo(self,t,a):
+        item=self.store.get(t,'todo',a['id'])
+        if not item: raise Denied('Task not found')
+        item['completed']=True
+        self.store.update(t,'todo',a['id'],item)
+        return item
 
     def remember(self,t,a):
         if any(x in a['key'].lower() for x in ['password','token','secret','key','credential']):
